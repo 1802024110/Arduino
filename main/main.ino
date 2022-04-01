@@ -1,6 +1,5 @@
 // 不要用VSCode烧写，一定要用Arduino IDE烧写
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
 #include <WiFiManager.h>  
 #include <ESP8266WebServer.h>
 #include <FS.h>  
@@ -11,6 +10,8 @@ ESP8266WebServer esp8266_server(80);    // 建立网络服务器对象，该对�
 
 void setup() {
   Serial.begin(9600);          // 启动串口通讯
+pinMode(LED_BUILTIN, OUTPUT); //设置内置LED引脚为输出模式以便控制LED
+
   Serial.println("尝试连接WIFI");
   WiFiManager wifiManager;
     
@@ -39,11 +40,18 @@ void loop(void) {
 }
 
 // 处理用户浏览器的HTTP访问
-void handleUserRequet() {         
-     
+void handleUserRequet() {
+
+  // server_on
+  esp8266_server.on("/led", HTTP_POST, []() {
+    Serial.println("server_on");
+    digitalWrite(LED_BUILTIN,!digitalRead(LED_BUILTIN));// 改变LED的点亮或者熄灭状态
+    esp8266_server.sendHeader("Location","/");          // 跳转回页面根目录
+  esp8266_server.send(303); 
+  });
+
   // 获取用户请求网址信息
   String webAddress = esp8266_server.uri();
-  
   // 通过handleFileRead函数处处理用户访问
   bool fileReadOK = handleFileRead(webAddress);
 
@@ -63,7 +71,6 @@ bool handleFileRead(String path) {            //处理浏览器HTTP访问
   
   if (SPIFFS.exists(path)) {                     // 如果访问的文件可以在SPIFFS中找到
     File file = SPIFFS.open(path, "r");          // 则尝试打开该文件
-    Serial.println(file);
     esp8266_server.streamFile(file, contentType);// 并且将该文件返回给浏览器
     file.close();                                // 并且关闭文件
     return true;                                 // 返回true
