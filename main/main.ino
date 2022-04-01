@@ -16,8 +16,6 @@ void setup() {
 
   // 自动连接WiFi。以下语句的参数是连接ESP8266时的WiFi名称
   Serial.println("尝试连接WIFI");
-  Serial.println("OTA Update Server");
-
   WiFiManager wifiManager;
   wifiManager.autoConnect("AutoConnectAP");
   // WiFi连接成功后将通过串口监视器输出连接成功信息 
