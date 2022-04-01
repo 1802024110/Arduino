@@ -1,42 +1,52 @@
 // 不要用VSCode烧写，一定要用Arduino IDE烧写
+#include <FS.h>  
+#include <Ticker.h>
+#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <WiFiManager.h>  
 #include <ESP8266WebServer.h>
-#include <FS.h>  
 
-//ESP8266WiFiMulti wifiMulti;     // 建立ESP8266WiFiMulti对象
-
+Ticker ticker;
 ESP8266WebServer esp8266_server(80);    // 建立网络服务器对象，该对象用于响应HTTP请求。监听端口（80）
 
 void setup() {
   Serial.begin(9600);          // 启动串口通讯
-pinMode(LED_BUILTIN, OUTPUT); //设置内置LED引脚为输出模式以便控制LED
+  pinMode(LED_BUILTIN, OUTPUT); //设置内置LED引脚为输出模式以便控制LED
+  ticker.attach(1, testLed);  // 设置Ticker对象
 
+  // 自动连接WiFi。以下语句的参数是连接ESP8266时的WiFi名称
   Serial.println("尝试连接WIFI");
   WiFiManager wifiManager;
-    
-  // 自动连接WiFi。以下语句的参数是连接ESP8266时的WiFi名称
   wifiManager.autoConnect("AutoConnectAP");
-
   // WiFi连接成功后将通过串口监视器输出连接成功信息 
   Serial.print("连接到WIFI：");
   Serial.println(WiFi.SSID());              // 通过串口监视器输出连接的WiFi名称
   Serial.print("你的IP为：\t");
   Serial.println(WiFi.localIP());           // 通过串口监视器输出ESP8266-NodeMCU的IP
 
+  // Web服务器初始化
   if(!SPIFFS.begin()){                       // 启动闪存文件系统
     Serial.println("无法启动闪存文件系统，终止程序");
     return;
   } 
-  
   esp8266_server.onNotFound(handleUserRequet);      // 告知系统如何处理用户请求
-
   esp8266_server.begin();                           // 启动网站服务
   Serial.println("Web服务器已启动");
+
+  // OTA设置并启动
+  ArduinoOTA.setHostname("ESP8266");
+  ArduinoOTA.setPassword("12345678");
+  ArduinoOTA.begin();
+
 }
 
 void loop(void) {
-  esp8266_server.handleClient();                    // 处理用户请求
+  esp8266_server.handleClient();                    // 处理用户WEB请求
+  ArduinoOTA.handle();                              // 处理OTA升级
+}
+
+void testLed() {
+  digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
 }
 
 // 处理用户浏览器的HTTP访问
